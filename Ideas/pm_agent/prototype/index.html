@@ -197,7 +197,7 @@
         color: var(--ink);
         font-family: inherit;
       }
-      textarea { min-height: 120px; resize: vertical; }
+      textarea { min-height: 56px; resize: vertical; }
       .muted { color: var(--muted); font-size: 13px; }
       .list { display: grid; gap: 10px; }
       .list-item {
@@ -290,6 +290,11 @@
       .footer-actions { display: flex; gap: 10px; justify-content: flex-end; }
       .grid-two { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
       .hidden { display: none !important; }
+      .doc h3 { margin: 18px 0 8px; font-size: 16px; }
+      .doc p { margin: 0 0 10px; color: var(--ink); }
+      .doc ul { margin: 0 0 12px 18px; }
+      .doc li { margin-bottom: 6px; color: var(--ink); }
+      .doc .muted { color: var(--muted); }
       .overlay {
         position: fixed;
         inset: 0;
@@ -430,12 +435,20 @@
                 <textarea id="idea-input" placeholder="例如：我想做一个针对自由职业者的税务申报助手，能够自动扫描发票并计算预估税额..."></textarea>
               </div>
               <div style="margin-top: 10px;">
-                <label>补充上下文（可选）</label>
-                <input id="context-input" placeholder="目标用户 / 竞品 / 核心商业目标等" />
+                <label>目标用户（可选）</label>
+                <input id="context-user" placeholder="例如：中小团队产品经理 / 创业 PM" />
+              </div>
+              <div style="margin-top: 10px;">
+                <label>竞品（可选）</label>
+                <input id="context-competitors" placeholder="例如：通用 LLM / 文档模板工具 / 原型工具" />
+              </div>
+              <div style="margin-top: 10px;">
+                <label>核心商业目标（可选）</label>
+                <input id="context-goal" placeholder="例如：营收 / 增长 / 效率 / 合规" />
               </div>
               <div class="footer-actions" style="margin-top: 20px;">
                 <button class="btn" data-screen="dashboard">取消</button>
-                <button class="btn primary" id="generate-btn">生成方案 (消耗 120 Token)</button>
+                <button class="btn primary" id="generate-btn">生成方案 (消耗 10 Token)</button>
               </div>
             </div>
             <div class="panel">
@@ -480,27 +493,15 @@
 
               <!-- TAB: IDEA -->
               <div data-tab-panel-group="results" data-tab-panel="idea">
-                <div class="panel" style="border:0; shadow:none; padding:0;">
-                  <h3>市场定位</h3>
-                  <p class="muted">面向自由职业者与个体户的智能税务管理工具，填补记账软件与专业会计服务之间的空白。</p>
-                  <h3>核心价值</h3>
-                  <div class="row">
-                    <div class="card"><h4>自动化</h4><p class="muted">OCR 识别发票，自动归类。</p></div>
-                    <div class="card"><h4>合规性</h4><p class="muted">实时同步最新税法政策。</p></div>
-                  </div>
+                <div class="panel doc" style="border:0; shadow:none; padding:0;">
+                  <div id="idea-doc"></div>
                 </div>
               </div>
 
               <!-- TAB: PRD -->
               <div class="hidden" data-tab-panel-group="results" data-tab-panel="prd">
-                <div class="panel" style="border:0; shadow:none; padding:0;">
-                  <h3>MVP 核心流程</h3>
-                  <div class="list">
-                    <div class="list-item">1. 用户注册与税务身份配置</div>
-                    <div class="list-item">2. 拍照/上传发票进行识别</div>
-                    <div class="list-item">3. 首页仪表盘查看本月预估税额</div>
-                    <div class="list-item">4. 生成季度申报表草稿</div>
-                  </div>
+                <div class="panel doc" style="border:0; shadow:none; padding:0;">
+                  <div id="prd-doc"></div>
                 </div>
               </div>
 
@@ -509,10 +510,10 @@
                  <div class="empty-box">
                     <div style="font-size: 48px; margin-bottom: 10px;">⚡️</div>
                     <div>本地原型已就绪</div>
-                    <p class="muted">已生成完整的高保真 HTML/CSS/JS 原型文件。<br>文件路径：<code>Ideas/project/prototype/index.html</code></p>
+                    <p class="muted">已生成可运行的原型 HTML。<br>文件名：<code id="prototype-file">prototype.html</code></p>
                     <div style="display: flex; gap: 10px; margin-top: 10px;">
-                      <button class="btn primary" onclick="alert('预览功能仅在完整 CLI 环境下可用。\n请在终端输入：open Ideas/your-project/prototype/index.html')">打开预览</button>
-                      <button class="btn" onclick="alert('文件已保存至本地目录。')">复制本地路径</button>
+                      <button class="btn primary" id="prototype-open">打开预览</button>
+                      <button class="btn" id="prototype-download">下载原型</button>
                     </div>
                  </div>
               </div>
@@ -543,7 +544,7 @@
             <div class="list">
               <div class="list-item">
                 <span>生成项目：税务助手</span>
-                <span class="muted">-120 Token</span>
+                <span class="muted">-10 Token</span>
               </div>
               <div class="list-item">
                 <span>初始赠送</span>
@@ -572,19 +573,18 @@
         user: null,
         tokenBalance: 1000,
         projects: [
-          { 
-            id: 1, 
-            title: 'PM Agent', 
-            desc: 'AI 驱动的产品经理工作台', 
-            status: 'completed', 
-            date: '2023-10-24 10:30' 
-          },
-          { 
-            id: 2, 
-            title: '移动端增长助手', 
-            desc: '针对电商 App 的增长策略生成器', 
-            status: 'completed', 
-            date: '2023-10-23 19:20' 
+          {
+            id: 2,
+            title: '智能税务管理工具',
+            desc: '面向自由职业者的税务整理与申报助手',
+            status: 'completed',
+            date: '2023-10-23 19:20',
+            ideaInput: '智能税务管理工具',
+            context: {
+              user: '自由职业者、个体户、小微商家',
+              competitors: '记账软件、电子发票管理工具、代理记账服务',
+              goal: '合规与效率'
+            }
           }
         ]
       };
@@ -601,6 +601,454 @@
       const projectListEl = document.getElementById('project-list-container');
       const emptyStateEl = document.getElementById('project-empty-state');
       const navRecentEl = document.getElementById('nav-recent-projects');
+      const ideaDocEl = document.getElementById('idea-doc');
+      const prdDocEl = document.getElementById('prd-doc');
+      const prototypeFileEl = document.getElementById('prototype-file');
+      const prototypeOpenBtn = document.getElementById('prototype-open');
+      const prototypeDownloadBtn = document.getElementById('prototype-download');
+
+      function escapeHtml(value) {
+        return String(value || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/\"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function shortIdea(idea) {
+        const clean = (idea || '').trim();
+        if (!clean) return '该想法';
+        return clean.length > 24 ? `${clean.slice(0, 24)}...` : clean;
+      }
+
+      function slugify(value) {
+        const clean = (value || '').toLowerCase();
+        const ascii = clean.replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-');
+        return ascii.replace(/^-+|-+$/g, '') || 'prototype';
+      }
+
+      function buildPrototypeHtml(project) {
+        const idea = project.ideaInput || '智能税务管理工具';
+        const title = escapeHtml(shortIdea(idea));
+        const isTax = isTaxIdea(idea);
+        if (isTax) {
+          return `<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${title} - 原型</title>
+    <style>
+      :root { --bg:#f8f5ef; --panel:#fff; --ink:#1f2328; --muted:#6b7280; --accent:#0f5d5c; --line:#e5e1d8; }
+      *{box-sizing:border-box} body{margin:0;font-family:Arial,\"PingFang SC\",sans-serif;background:var(--bg);color:var(--ink)}
+      header{padding:16px 20px;border-bottom:1px solid var(--line);background:#fff;position:sticky;top:0}
+      .layout{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+      nav{border-right:1px solid var(--line);background:#fff;padding:16px}
+      nav button{width:100%;text-align:left;margin-bottom:8px;padding:10px;border:1px solid transparent;border-radius:10px;background:#fff;cursor:pointer}
+      nav button.active{border-color:rgba(15,93,92,.25);background:rgba(15,93,92,.08)}
+      main{padding:20px}
+      .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+      .grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+      .muted{color:var(--muted);font-size:13px}
+      .btn{padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:#fff;cursor:pointer}
+      .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+      .hidden{display:none}
+      .list{display:grid;gap:8px}
+      .list-item{border:1px solid var(--line);border-radius:10px;padding:10px}
+    </style>
+  </head>
+  <body>
+    <header><strong>${title}</strong> <span class="muted">税务申报流程原型</span></header>
+    <div class="layout">
+      <nav>
+        <button class="active" data-screen="overview">总览</button>
+        <button data-screen="receipts">票据整理</button>
+        <button data-screen="estimate">税额预估</button>
+        <button data-screen="draft">申报草稿</button>
+      </nav>
+      <main>
+        <section id="overview" class="panel">
+          <h3>本期概览</h3>
+          <div class="grid">
+            <div class="panel">
+              <div class="muted">已识别票据</div>
+              <strong>18 张</strong>
+            </div>
+            <div class="panel">
+              <div class="muted">预估税额</div>
+              <strong>¥ 6,420</strong>
+            </div>
+            <div class="panel">
+              <div class="muted">申报状态</div>
+              <strong>待生成草稿</strong>
+            </div>
+          </div>
+          <div style="margin-top:12px;">
+            <button class="btn primary" data-screen="receipts">开始整理票据</button>
+          </div>
+        </section>
+
+        <section id="receipts" class="panel hidden">
+          <h3>票据整理</h3>
+          <p class="muted">上传或录入票据，系统自动分类并提示异常。</p>
+          <div class="list">
+            <div class="list-item">发票：18 张 / ¥ 52,340</div>
+            <div class="list-item">待补充：交通费票据 2 张</div>
+          </div>
+          <div style="margin-top:12px;">
+            <button class="btn primary" data-screen="estimate">生成税额预估</button>
+          </div>
+        </section>
+
+        <section id="estimate" class="panel hidden">
+          <h3>税额预估</h3>
+          <div class="list">
+            <div class="list-item">本期预估税额：¥ 6,420</div>
+            <div class="list-item">可抵扣成本：¥ 12,800</div>
+            <div class="list-item">风险提示：发票重复录入 1 条</div>
+          </div>
+          <div style="margin-top:12px;">
+            <button class="btn primary" data-screen="draft">生成申报草稿</button>
+          </div>
+        </section>
+
+        <section id="draft" class="panel hidden">
+          <h3>申报草稿</h3>
+          <p class="muted">草稿已生成，可下载或导出。</p>
+          <div class="list">
+            <div class="list-item">草稿版本：2024Q4</div>
+            <div class="list-item">导出格式：PDF / Excel</div>
+          </div>
+          <div style="margin-top:12px;">
+            <button class="btn">下载草稿</button>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script>
+      const buttons = document.querySelectorAll('nav button, [data-screen]');
+      const screens = document.querySelectorAll('main section');
+      function showScreen(id){
+        screens.forEach(s => s.classList.toggle('hidden', s.id !== id));
+        document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.screen === id));
+      }
+      buttons.forEach(btn => btn.addEventListener('click', () => showScreen(btn.dataset.screen)));
+    ${'</scr' + 'ipt>'}
+  </body>
+</html>`;
+        }
+
+        return `<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${title} - 原型</title>
+    <style>
+      body{margin:0;font-family:Arial,\"PingFang SC\",sans-serif;background:#f6f4ef;color:#1f2328}
+      header{padding:16px 20px;border-bottom:1px solid #e5e1d8;background:#fff}
+      main{padding:20px}
+      .panel{background:#fff;border:1px solid #e5e1d8;border-radius:12px;padding:16px;margin-bottom:12px}
+      .muted{color:#6b7280;font-size:13px}
+      .btn{padding:10px 14px;border-radius:10px;border:1px solid #e5e1d8;background:#fff}
+    </style>
+  </head>
+  <body>
+    <header><strong>${title}</strong> <span class="muted">通用流程原型</span></header>
+    <main>
+      <div class="panel">
+        <h3>流程概览</h3>
+        <p class="muted">输入关键信息 → 生成结构化内容 → 输出可交付结果。</p>
+        <button class="btn">开始</button>
+      </div>
+    </main>
+  </body>
+</html>`;
+      }
+
+      function ensurePrototype(project) {
+        if (!project) return;
+        if (project.prototype && project.prototype.url) return;
+        const fileName = `${slugify(project.title || project.ideaInput)}.html`;
+        const html = buildPrototypeHtml(project);
+        const blob = new Blob([html], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        project.prototype = { fileName, url, html };
+      }
+
+      function updatePrototypeUI(project) {
+        if (!project) return;
+        ensurePrototype(project);
+        if (prototypeFileEl) prototypeFileEl.textContent = project.prototype.fileName;
+        if (prototypeOpenBtn) {
+          prototypeOpenBtn.onclick = () => window.open(project.prototype.url, '_blank');
+        }
+        if (prototypeDownloadBtn) {
+          prototypeDownloadBtn.onclick = () => {
+            const link = document.createElement('a');
+            link.href = project.prototype.url;
+            link.download = project.prototype.fileName;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+          };
+        }
+      }
+
+      function isTaxIdea(idea) {
+        return /税|税务|申报|发票|个体户|纳税|财税|报税/.test(idea || '');
+      }
+
+      function buildIdeaEnhanced(project) {
+        const idea = project.ideaInput || '';
+        const user = project.context && project.context.user ? project.context.user : '待补充';
+        const competitors = project.context && project.context.competitors ? project.context.competitors : '待调研';
+        const shortText = escapeHtml(shortIdea(idea));
+
+        if (isTaxIdea(idea)) {
+          const taxUser = user === '待补充' ? '自由职业者、个体户、小微商家' : user;
+          const taxCompetitors = competitors === '待调研' ? '记账软件、电子发票管理工具、代理记账服务' : competitors;
+          return `
+            <h3>一句话定位</h3>
+            <p class="muted">面向${escapeHtml(taxUser)}的智能税务管理工具：票据整理、税额预估、申报草稿与提醒一体化完成。</p>
+
+            <h3>目标用户与场景</h3>
+            <ul>
+              <li>目标用户：${escapeHtml(taxUser)}</li>
+              <li>核心场景：申报期前快速整理票据、估算税额并生成申报草稿。</li>
+            </ul>
+
+            <h3>市场定位</h3>
+            <p class="muted">定位为“轻量税务申报工作流工具”，介于记账软件与代理记账服务之间。</p>
+
+            <h3>竞品与差异化</h3>
+            <ul>
+              <li>竞品：${escapeHtml(taxCompetitors)}</li>
+              <li>差异化：申报流程引导 + 预估税额 + 草稿导出 + 申报提醒。</li>
+            </ul>
+
+            <h3>价值主张</h3>
+            <ul>
+              <li>省时：减少票据整理与申报准备的时间成本。</li>
+              <li>合规：材料清单与风险提示降低遗漏率。</li>
+            </ul>
+
+            <h3>核心场景与路径</h3>
+            <ul>
+              <li>1) 登录 → 配置税务身份</li>
+              <li>2) 上传/录入票据 → 自动分类与校验</li>
+              <li>3) 生成税额预估 → 导出申报草稿</li>
+            </ul>
+
+            <h3>MVP 范围</h3>
+            <ul>
+              <li>做：票据管理、税额预估、申报草稿导出、提醒与订阅。</li>
+              <li>不做：多税制深度适配、代报服务、复杂财务分析。</li>
+            </ul>
+
+            <h3>关键假设与待验证</h3>
+            <ul>
+              <li>用户愿意为“申报效率 + 合规提醒”付费。</li>
+              <li>税额预估准确度达到可用门槛。</li>
+            </ul>
+          `;
+        }
+
+        return `
+          <h3>一句话定位</h3>
+          <p class="muted">面向${escapeHtml(user)}的解决方案：围绕“${shortText}”提供端到端流程能力。</p>
+
+          <h3>目标用户与场景</h3>
+          <ul>
+            <li>目标用户：${escapeHtml(user)}</li>
+            <li>核心场景：用户在特定场景下需要“${shortText}”的能力支持。</li>
+          </ul>
+
+          <h3>市场定位</h3>
+          <p class="muted">定位为聚焦“${shortText}”的垂直工具，强调可执行与可交付。</p>
+
+          <h3>竞品与差异化</h3>
+          <ul>
+            <li>竞品：${escapeHtml(competitors)}</li>
+            <li>差异化：围绕“${shortText}”提供完整流程与明确输出。</li>
+          </ul>
+
+          <h3>价值主张</h3>
+          <ul>
+            <li>效率：减少从想法到成果的时间成本。</li>
+            <li>确定性：标准化产出，提高沟通与协作效率。</li>
+          </ul>
+
+          <h3>核心场景与路径</h3>
+          <ul>
+            <li>1) 用户进入产品 → 完成关键信息输入</li>
+            <li>2) 系统生成结构化内容 → 用户快速确认</li>
+            <li>3) 输出可交付结果 → 分享与协作</li>
+          </ul>
+
+          <h3>MVP 范围</h3>
+          <ul>
+            <li>做：围绕“${shortText}”的核心流程与关键输出。</li>
+            <li>不做：复杂协作、高级分析、多端重构。</li>
+          </ul>
+
+          <h3>关键假设与待验证</h3>
+          <ul>
+            <li>目标用户对“${shortText}”有高频需求。</li>
+            <li>用户愿意为效率与结果付费。</li>
+          </ul>
+        `;
+      }
+
+      function buildPrd(project) {
+        const idea = project.ideaInput || '';
+        const user = project.context && project.context.user ? project.context.user : '待补充';
+        const goal = project.context && project.context.goal ? project.context.goal : '待明确';
+        const shortText = escapeHtml(shortIdea(idea));
+
+        if (isTaxIdea(idea)) {
+          const taxUser = user === '待补充' ? '自由职业者、个体户、小微商家' : user;
+          return `
+            <h3>需求背景</h3>
+            <p class="muted">自由职业者与个体户在申报季需要整理票据、估算税额并完成申报，流程分散、容易遗漏。</p>
+
+            <h3>项目定位及发展方向</h3>
+            <ul>
+              <li>定位：面向${escapeHtml(taxUser)}的税务申报工作流工具。</li>
+              <li>发展方向：从单一税制扩展到多地区与行业模板。</li>
+            </ul>
+
+            <h3>目标与指标（口径）</h3>
+            <ul>
+              <li>北极星指标：申报完成率（生成草稿并标记完成）。</li>
+              <li>核心指标（1-3 个）：月活 ≥ 200；草稿生成成功率 ≥ 70%；付费转化率 ≥ 5%。</li>
+              <li>KPI 维度拆解（示例）：增长 / 转化 / 留存 / 活跃 / 收入成本。</li>
+              <li>口径说明：申报期内完成草稿生成并标记完成。</li>
+            </ul>
+
+            <h3>需求可行性</h3>
+            <ul>
+              <li>技术可行：票据 OCR + 分类与税率配置可满足 MVP。</li>
+              <li>资源可行：先聚焦单税制与单地区。</li>
+            </ul>
+
+            <h3>目标用户与核心场景</h3>
+            <ul>
+              <li>目标用户：${escapeHtml(taxUser)}</li>
+              <li>核心场景：票据整理 → 税额预估 → 申报草稿导出。</li>
+            </ul>
+
+            <h3>MVP 需求范围</h3>
+            <ul>
+              <li>做：身份配置、票据管理、税额预估、草稿导出、申报提醒。</li>
+              <li>不做：多地区税制深度适配、代报服务、复杂记账分析。</li>
+            </ul>
+
+            <h3>核心流程与功能需求</h3>
+            <ul>
+              <li>流程闭环：登录 → 配置身份 → 上传票据 → 税额预估 → 草稿导出。</li>
+              <li>功能需求：票据识别与分类、预估计算、草稿下载、提醒设置。</li>
+            </ul>
+
+            <h3>UI 与交互需求（iOS 组件库）</h3>
+            <p class="muted">分步展示（票据 → 预估 → 草稿），覆盖上传中/识别失败/生成成功状态。</p>
+
+            <h3>版本规划与里程碑</h3>
+            <ul>
+              <li>V0（MVP）范围：票据管理 + 预估 + 草稿导出。</li>
+              <li>V1（扩展）范围：税制扩展与行业模板。</li>
+              <li>里程碑：D1 核心流程，D2 异常与提醒覆盖。</li>
+              <li>交付物：PRD、样例草稿、本地原型链接。</li>
+            </ul>
+
+            <h3>风险与依赖（可选）</h3>
+            <ul>
+              <li>风险：税法更新导致预估偏差；用户误解为税务建议。</li>
+              <li>依赖：OCR 与税率配置的稳定性。</li>
+            </ul>
+
+            <h3>关键假设与验证计划（可选）</h3>
+            <ul>
+              <li>假设：用户愿意为合规提醒与申报效率付费。</li>
+              <li>验证：申报季内小范围用户试用与访谈。</li>
+            </ul>
+          `;
+        }
+
+        return `
+          <h3>需求背景</h3>
+          <p class="muted">围绕“${shortText}”，目标用户需要更高效、更一致的解决方案，以降低沟通与执行成本。</p>
+
+          <h3>项目定位及发展方向</h3>
+          <ul>
+            <li>定位：聚焦“${shortText}”的垂直工具。</li>
+            <li>发展方向：从 MVP 验证扩展到更多模板与场景。</li>
+          </ul>
+
+          <h3>目标与指标（口径）</h3>
+          <ul>
+            <li>北极星指标：目标用户完成关键动作的转化率。</li>
+            <li>核心指标（1-3 个）：活跃用户数、关键产出完成率、付费转化率。</li>
+            <li>KPI 维度拆解（示例）：增长 / 转化 / 留存 / 活跃 / 收入成本。</li>
+            <li>口径说明：以关键流程完成为统计口径。</li>
+          </ul>
+
+          <h3>需求可行性</h3>
+          <ul>
+            <li>技术可行：基于现有能力可快速实现核心流程。</li>
+            <li>资源可行：优先实现最小闭环，控制范围。</li>
+          </ul>
+
+          <h3>目标用户与核心场景</h3>
+          <ul>
+            <li>目标用户：${escapeHtml(user)}</li>
+            <li>核心场景：围绕“${shortText}”完成关键任务。</li>
+          </ul>
+
+          <h3>MVP 需求范围</h3>
+          <ul>
+            <li>做：围绕核心流程的输入、处理与输出。</li>
+            <li>不做：多端协作、高级分析、复杂权限体系。</li>
+          </ul>
+
+          <h3>核心流程与功能需求</h3>
+          <ul>
+            <li>流程闭环：输入信息 → 生成结构化内容 → 输出可交付结果。</li>
+            <li>功能需求：内容生成、结果导出、历史管理。</li>
+          </ul>
+
+          <h3>UI 与交互需求（iOS 组件库）</h3>
+          <p class="muted">分步展示与清晰反馈，覆盖加载/空/错误/成功状态。</p>
+
+          <h3>版本规划与里程碑</h3>
+          <ul>
+            <li>V0（MVP）范围：核心流程闭环。</li>
+            <li>V1（扩展）范围：模板增强与行业化。</li>
+            <li>里程碑：D1 核心流程，D2 状态与规范补齐。</li>
+            <li>交付物：PRD、样例、原型链接。</li>
+          </ul>
+
+          <h3>风险与依赖（可选）</h3>
+          <ul>
+            <li>风险：目标用户对“${shortText}”价值认知不足。</li>
+            <li>依赖：内容生成能力与模板质量。</li>
+          </ul>
+
+          <h3>关键假设与验证计划（可选）</h3>
+          <ul>
+            <li>假设：${escapeHtml(goal)}导向的价值主张成立。</li>
+            <li>验证：通过小范围用户测试与访谈验证。</li>
+          </ul>
+        `;
+      }
+
+      function renderDocs(project) {
+        if (!project) return;
+        if (ideaDocEl) ideaDocEl.innerHTML = buildIdeaEnhanced(project);
+        if (prdDocEl) prdDocEl.innerHTML = buildPrd(project);
+        updatePrototypeUI(project);
+      }
 
       // --- Navigation ---
       function setActiveScreen(id) {
@@ -724,6 +1172,7 @@
         if (!project) return;
         
         document.getElementById('result-project-title').textContent = project.title;
+        renderDocs(project);
         
         // Reset View for Simulation
         document.getElementById('generation-progress').classList.add('hidden');
@@ -738,15 +1187,18 @@
       document.getElementById('generate-btn').addEventListener('click', () => {
         const idea = document.getElementById('idea-input').value;
         if (!idea) return alert('请输入 Idea');
+        const contextUser = document.getElementById('context-user').value;
+        const contextCompetitors = document.getElementById('context-competitors').value;
+        const contextGoal = document.getElementById('context-goal').value;
 
         // Token Check
-        if (state.tokenBalance < 120) {
+        if (state.tokenBalance < 10) {
           paywall.classList.add('active');
           return;
         }
 
         // Deduct Token
-        state.tokenBalance -= 120;
+        state.tokenBalance -= 10;
         updateTokenUI();
 
         // Create Project
@@ -755,7 +1207,13 @@
           title: idea.substring(0, 10) + (idea.length > 10 ? '...' : ''),
           desc: idea,
           status: 'processing',
-          date: '刚刚'
+          date: '刚刚',
+          ideaInput: idea,
+          context: {
+            user: contextUser,
+            competitors: contextCompetitors,
+            goal: contextGoal
+          }
         };
         state.projects.push(newProject);
 
@@ -780,6 +1238,7 @@
           document.getElementById('result-content').classList.remove('hidden');
           document.getElementById('result-status-tag').textContent = '已完成';
           document.getElementById('result-status-tag').className = 'tag success';
+          renderDocs(newProject);
           renderProjects(); // Update sidebar
         }, 3500);
       });
