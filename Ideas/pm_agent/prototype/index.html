@@ -1,0 +1,832 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PM Agent - 商业产品原型</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap");
+
+      :root {
+        --bg: #f6f4ef;
+        --panel: #ffffff;
+        --ink: #1f2328;
+        --muted: #6b7280;
+        --line: #e5e1d8;
+        --accent: #0f5d5c;
+        --accent-soft: #d9efe9;
+        --accent-ink: #ffffff;
+        --warn: #f59e0b;
+        --danger: #dc2626;
+        --success: #16a34a;
+        --shadow: 0 18px 40px rgba(31, 35, 40, 0.08);
+        --radius: 16px;
+      }
+
+      [data-theme="dark"] {
+        --bg: #0d1117;
+        --panel: #161b22;
+        --ink: #f0f6fc;
+        --muted: #8b949e;
+        --line: #30363d;
+        --accent: #188c8a;
+        --accent-soft: rgba(24, 140, 138, 0.15);
+        --accent-ink: #ffffff;
+        --shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: linear-gradient(120deg, #f4f1ea 0%, #f9f7f2 55%, #eef6f3 100%);
+        color: var(--ink);
+        font-family: "IBM Plex Sans", "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", sans-serif;
+        transition: background 0.3s, color 0.3s;
+      }
+      [data-theme="dark"] body {
+        background: linear-gradient(120deg, #0d1117 0%, #161b22 100%);
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--line);
+      }
+      [data-theme="dark"] header {
+        background: rgba(22, 27, 34, 0.8);
+      }
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 24px;
+        gap: 16px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-family: "Space Grotesk", "IBM Plex Sans", sans-serif;
+        font-weight: 600;
+        font-size: 18px;
+        cursor: pointer;
+        color: var(--ink);
+      }
+      .brand-mark {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #0f5d5c, #0f8f7c);
+        color: #fff;
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+      }
+      .top-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .pill {
+        background: var(--accent-soft);
+        border: 1px solid rgba(15, 93, 92, 0.15);
+        padding: 6px 12px;
+        border-radius: 999px;
+        color: #0f5d5c;
+        font-weight: 500;
+      }
+      .btn {
+        border: 1px solid var(--line);
+        background: var(--panel);
+        color: var(--ink);
+        padding: 10px 14px;
+        border-radius: 12px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: transform 0.2s ease, border-color 0.2s ease;
+      }
+      .btn:hover { transform: translateY(-1px); }
+      .btn.primary {
+        background: var(--accent);
+        color: var(--accent-ink);
+        border-color: var(--accent);
+        font-weight: 600;
+      }
+      .btn.ghost { background: transparent; }
+      .btn.ghost:hover { background: rgba(0,0,0,0.05); }
+      [data-theme="dark"] .btn.ghost:hover { background: rgba(255,255,255,0.1); }
+      .btn.link {
+        border: 0;
+        background: transparent;
+        color: var(--accent);
+        padding: 0;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 240px 1fr;
+        min-height: calc(100vh - 64px);
+      }
+      nav {
+        padding: 20px;
+        border-right: 1px solid var(--line);
+        background: var(--panel); /* Changed from fixed color to var */
+      }
+      .nav-title {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: var(--muted);
+        margin: 16px 0 10px;
+      }
+      .nav-item {
+        width: 100%;
+        text-align: left;
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid transparent;
+        background: transparent;
+        cursor: pointer;
+        font-size: 14px;
+        color: var(--ink);
+      }
+      .nav-item.active {
+        border-color: rgba(15, 93, 92, 0.2);
+        background: rgba(15, 93, 92, 0.08);
+        font-weight: 600;
+      }
+      .content { padding: 24px; }
+      .screen { display: none; }
+      .screen.active { display: block; animation: rise 200ms ease-out; }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 18px;
+        box-shadow: var(--shadow);
+        margin-bottom: 16px;
+      }
+      .panel-title {
+        font-family: "Space Grotesk", "IBM Plex Sans", sans-serif;
+        font-weight: 600;
+        font-size: 16px;
+        margin-bottom: 10px;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 12px;
+      }
+      .stack {
+        display: grid;
+        gap: 12px;
+      }
+      label {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      input, textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        color: var(--ink);
+        font-family: inherit;
+      }
+      textarea { min-height: 120px; resize: vertical; }
+      .muted { color: var(--muted); font-size: 13px; }
+      .list { display: grid; gap: 10px; }
+      .list-item {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .tag {
+        border: 1px solid var(--line);
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .tag.success { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
+      .tag.processing { background: #e0f2fe; color: #075985; border-color: #bae6fd; }
+
+      .segmented {
+        display: inline-flex;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        overflow: hidden;
+        background: rgba(0,0,0,0.04); /* Soft background */
+      }
+      [data-theme="dark"] .segmented {
+        background: rgba(255,255,255,0.05);
+      }
+      .segmented button {
+        border: 0;
+        background: transparent;
+        padding: 8px 14px;
+        cursor: pointer;
+        color: var(--muted);
+      }
+      .segmented button.active {
+        background: var(--panel);
+        color: var(--ink);
+        font-weight: 600;
+      }
+      .helper {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 6px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .state-toggle { display: flex; gap: 8px; flex-wrap: wrap; }
+      .empty-box {
+        border: 1px dashed var(--line);
+        border-radius: 12px;
+        padding: 48px;
+        text-align: center;
+        color: var(--muted);
+        background: rgba(0,0,0,0.02);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+      }
+      .progress {
+        height: 10px;
+        background: var(--line);
+        border-radius: 999px;
+        overflow: hidden;
+      }
+      .progress span {
+        display: block;
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, var(--accent), #3aa58a);
+        transition: width 0.3s ease;
+      }
+      .cards {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      }
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 14px;
+        background: var(--panel);
+      }
+      .card h4 { margin: 0 0 6px; font-family: "Space Grotesk", sans-serif; }
+      .card p { margin: 0 0 12px; color: var(--muted); font-size: 13px; }
+      .footer-actions { display: flex; gap: 10px; justify-content: flex-end; }
+      .grid-two { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+      .hidden { display: none !important; }
+      .overlay {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(15, 23, 42, 0.2);
+        backdrop-filter: blur(8px);
+        z-index: 20;
+      }
+      .overlay.active { display: flex; }
+      .modal {
+        width: min(420px, 92vw);
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 18px;
+        box-shadow: var(--shadow);
+      }
+      @keyframes rise {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @media (max-width: 980px) {
+        .layout { grid-template-columns: 1fr; }
+        nav { border-right: 0; border-bottom: 1px solid var(--line); }
+        .grid-two { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="topbar">
+        <div class="brand" onclick="setActiveScreen('dashboard')"><span class="brand-mark">PM</span>PM Agent</div>
+        <div class="top-actions" id="top-actions">
+          <span class="pill" id="token-pill">Token 余额：<strong id="token-balance">1000</strong></span>
+          <button class="btn" data-screen="subscription">订阅与额度</button>
+          <button class="btn ghost" id="theme-toggle" title="切换主题">🌗</button>
+          <button class="btn ghost" id="logout">退出</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="content" id="auth-view">
+      <div class="panel" style="max-width: 640px; margin: 32px auto;">
+        <div class="panel-title">PM Agent - 欢迎</div>
+        <p class="muted">AI 驱动的产品经理工作台。输入 Idea，自动生成 PRD 与可交互原型。</p>
+        <div class="segmented" role="tablist" aria-label="登录方式">
+          <button class="active" data-tab-group="auth" data-tab="login">登录</button>
+          <button data-tab-group="auth" data-tab="register">注册</button>
+        </div>
+
+        <div class="panel" data-tab-panel-group="auth" data-tab-panel="login" style="margin-top: 12px;">
+          <div class="stack">
+            <div>
+              <label>邮箱</label>
+              <input type="email" value="demo@pmagent.ai" />
+            </div>
+            <div>
+              <label>密码</label>
+              <input type="password" value="123456" />
+            </div>
+          </div>
+          <div class="footer-actions" style="margin-top: 12px;">
+            <button class="btn primary" id="login-btn">进入工作台</button>
+          </div>
+          
+          <div style="margin-top: 24px; text-align: center; position: relative;">
+            <hr style="border: 0; border-top: 1px solid var(--line); position: absolute; top: 50%; width: 100%; z-index: 0;">
+            <span style="background: #fff; padding: 0 10px; position: relative; z-index: 1; color: var(--muted); font-size: 12px;">或者</span>
+          </div>
+
+          <div style="margin-top: 16px; display: flex; justify-content: center;">
+            <!-- Google Sign-In Configuration -->
+            <!-- 
+                 TODO: 替换 client_id 为你自己在 Google Cloud Console 申请的 ID
+                 1. console.cloud.google.com -> API & Services -> Credentials
+                 2. Create OAuth Client ID (Web application)
+                 3. Authorized Origins: http://localhost:8000
+            -->
+            <div id="g_id_onload"
+                 data-client_id="YOUR_GOOGLE_CLIENT_ID"
+                 data-context="signin"
+                 data-ux_mode="popup"
+                 data-callback="handleCredentialResponse"
+                 data-auto_prompt="false">
+            </div>
+
+            <div class="g_id_signin"
+                 data-type="standard"
+                 data-shape="rectangular"
+                 data-theme="outline"
+                 data-text="sign_in_with"
+                 data-size="large"
+                 data-logo_alignment="left">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <main class="layout hidden" id="app-shell">
+      <nav>
+        <div class="nav-title">工作流</div>
+        <button class="nav-item active" data-screen="dashboard">工作台</button>
+        <button class="nav-item" data-screen="new-project">新建项目</button>
+        <div class="nav-title">最近项目</div>
+        <div id="nav-recent-projects">
+          <!-- Populated by JS -->
+        </div>
+        <div class="nav-title">账户</div>
+        <button class="nav-item" data-screen="subscription">订阅与额度</button>
+      </nav>
+      
+      <div class="content">
+        <!-- SCREEN: DASHBOARD -->
+        <section class="screen active" id="dashboard">
+          <div class="panel">
+            <div class="panel-title">我的项目</div>
+            <div id="project-list-container" class="list">
+              <!-- Populated by JS -->
+            </div>
+            <div id="project-empty-state" class="empty-box hidden">
+              <div>👋 欢迎使用 PM Agent</div>
+              <p>你还没有创建任何项目。从一个简单的 Idea 开始吧。</p>
+              <button class="btn primary" data-screen="new-project">开始新建</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- SCREEN: NEW PROJECT -->
+        <section class="screen" id="new-project">
+          <div class="grid-two">
+            <div class="panel">
+              <div class="panel-title">新建项目</div>
+              <div>
+                <label>你的 Idea 是什么？</label>
+                <textarea id="idea-input" placeholder="例如：我想做一个针对自由职业者的税务申报助手，能够自动扫描发票并计算预估税额..."></textarea>
+              </div>
+              <div style="margin-top: 10px;">
+                <label>补充上下文（可选）</label>
+                <input id="context-input" placeholder="目标用户 / 竞品 / 核心商业目标等" />
+              </div>
+              <div class="footer-actions" style="margin-top: 20px;">
+                <button class="btn" data-screen="dashboard">取消</button>
+                <button class="btn primary" id="generate-btn">生成方案 (消耗 120 Token)</button>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-title">工作流预览</div>
+              <div class="list">
+                <div class="list-item">
+                  <span class="muted">1. 完善构想 (Idea Enhancement)</span>
+                </div>
+                <div class="list-item">
+                  <span class="muted">2. 生成 PRD (MVP Scope)</span>
+                </div>
+                <div class="list-item">
+                  <span class="muted">3. 产出本地交互原型 (HTML)</span>
+                </div>
+              </div>
+              <div class="panel" style="background: #f5faf8; border-color: #d6e9e3; margin-top: 12px;">
+                <p class="muted">当前剩余免费 Token: <strong id="token-display-mini">1000</strong></p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- SCREEN: RESULTS (IDEA & PRD) -->
+        <section class="screen" id="results">
+          <div class="panel">
+            <div class="panel-title" style="display:flex; justify-content:space-between;">
+              <span id="result-project-title">项目详情</span>
+              <span class="tag processing" id="result-status-tag">生成中...</span>
+            </div>
+            
+            <div id="generation-progress" class="panel hidden" style="background:#f9fafb;">
+               <p class="muted" id="progress-text">正在分析你的 Idea...</p>
+               <div class="progress"><span id="progress-bar" style="width: 0%"></span></div>
+            </div>
+
+            <div id="result-content" class="hidden">
+              <div class="segmented" role="tablist" style="margin: 12px 0;">
+                <button class="active" data-tab-group="results" data-tab="idea">1. 完善构想</button>
+                <button data-tab-group="results" data-tab="prd">2. PRD 文档</button>
+                <button data-tab-group="results" data-tab="prototype">3. 原型</button>
+              </div>
+
+              <!-- TAB: IDEA -->
+              <div data-tab-panel-group="results" data-tab-panel="idea">
+                <div class="panel" style="border:0; shadow:none; padding:0;">
+                  <h3>市场定位</h3>
+                  <p class="muted">面向自由职业者与个体户的智能税务管理工具，填补记账软件与专业会计服务之间的空白。</p>
+                  <h3>核心价值</h3>
+                  <div class="row">
+                    <div class="card"><h4>自动化</h4><p class="muted">OCR 识别发票，自动归类。</p></div>
+                    <div class="card"><h4>合规性</h4><p class="muted">实时同步最新税法政策。</p></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- TAB: PRD -->
+              <div class="hidden" data-tab-panel-group="results" data-tab-panel="prd">
+                <div class="panel" style="border:0; shadow:none; padding:0;">
+                  <h3>MVP 核心流程</h3>
+                  <div class="list">
+                    <div class="list-item">1. 用户注册与税务身份配置</div>
+                    <div class="list-item">2. 拍照/上传发票进行识别</div>
+                    <div class="list-item">3. 首页仪表盘查看本月预估税额</div>
+                    <div class="list-item">4. 生成季度申报表草稿</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- TAB: PROTOTYPE -->
+              <div class="hidden" data-tab-panel-group="results" data-tab-panel="prototype">
+                 <div class="empty-box">
+                    <div style="font-size: 48px; margin-bottom: 10px;">⚡️</div>
+                    <div>本地原型已就绪</div>
+                    <p class="muted">已生成完整的高保真 HTML/CSS/JS 原型文件。<br>文件路径：<code>Ideas/project/prototype/index.html</code></p>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                      <button class="btn primary" onclick="alert('预览功能仅在完整 CLI 环境下可用。\n请在终端输入：open Ideas/your-project/prototype/index.html')">打开预览</button>
+                      <button class="btn" onclick="alert('文件已保存至本地目录。')">复制本地路径</button>
+                    </div>
+                 </div>
+              </div>
+            </div>
+            
+          </div>
+        </section>
+
+        <!-- SCREEN: SUBSCRIPTION -->
+        <section class="screen" id="subscription">
+          <div class="panel">
+            <div class="panel-title">订阅计划</div>
+            <div class="cards">
+              <div class="card">
+                <h4>月度会员</h4>
+                <p>￥20 / 月</p>
+                <button class="btn primary">订阅</button>
+              </div>
+              <div class="card">
+                <h4>年度会员</h4>
+                <p>￥120 / 年 (立省 50%)</p>
+                <button class="btn primary">订阅</button>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-title">Token 使用记录</div>
+            <div class="list">
+              <div class="list-item">
+                <span>生成项目：税务助手</span>
+                <span class="muted">-120 Token</span>
+              </div>
+              <div class="list-item">
+                <span>初始赠送</span>
+                <span class="tag success">+1000 Token</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <div class="overlay" id="paywall">
+      <div class="modal">
+        <h3>额度不足</h3>
+        <p class="muted">你的免费 Token 已用尽，请订阅后继续生成。</p>
+        <div class="footer-actions" style="margin-top: 12px;">
+          <button class="btn" data-close="paywall">取消</button>
+          <button class="btn primary" data-screen="subscription">去订阅</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Data State
+      let state = {
+        user: null,
+        tokenBalance: 1000,
+        projects: [
+          { 
+            id: 1, 
+            title: 'PM Agent', 
+            desc: 'AI 驱动的产品经理工作台', 
+            status: 'completed', 
+            date: '2023-10-24 10:30' 
+          },
+          { 
+            id: 2, 
+            title: '移动端增长助手', 
+            desc: '针对电商 App 的增长策略生成器', 
+            status: 'completed', 
+            date: '2023-10-23 19:20' 
+          }
+        ]
+      };
+
+      // Elements
+      const navItems = document.querySelectorAll('[data-screen]');
+      const screens = document.querySelectorAll('.screen');
+      const tokenDisplay = document.getElementById('token-balance');
+      const tokenDisplayMini = document.getElementById('token-display-mini');
+      const paywall = document.getElementById('paywall');
+      const authView = document.getElementById('auth-view');
+      const appShell = document.getElementById('app-shell');
+      const topActions = document.getElementById('top-actions');
+      const projectListEl = document.getElementById('project-list-container');
+      const emptyStateEl = document.getElementById('project-empty-state');
+      const navRecentEl = document.getElementById('nav-recent-projects');
+
+      // --- Navigation ---
+      function setActiveScreen(id) {
+        screens.forEach((screen) => {
+          screen.classList.toggle('active', screen.id === id);
+          if (screen.id === id && id === 'dashboard') {
+            renderProjects();
+          }
+        });
+        document.querySelectorAll('.nav-item').forEach((item) => {
+          item.classList.toggle('active', item.dataset.screen === id);
+        });
+      }
+
+      navItems.forEach((item) => {
+        item.addEventListener('click', () => {
+          setActiveScreen(item.dataset.screen);
+        });
+      });
+
+      // --- Auth ---
+      function setLoggedIn(loggedIn) {
+        state.user = loggedIn ? { email: 'demo@pmagent.ai' } : null;
+        authView.classList.toggle('hidden', loggedIn);
+        appShell.classList.toggle('hidden', !loggedIn);
+        topActions.classList.toggle('hidden', !loggedIn);
+        if (loggedIn) {
+          renderProjects();
+          setActiveScreen('dashboard');
+        }
+      }
+
+      document.getElementById('login-btn').addEventListener('click', () => setLoggedIn(true));
+      document.getElementById('logout').addEventListener('click', () => setLoggedIn(false));
+
+      // --- Google Sign-In Handler ---
+      window.handleCredentialResponse = function(response) {
+        try {
+          // Decode the JWT ID Token
+          const responsePayload = decodeJwtResponse(response.credential);
+          
+          console.log("ID: " + responsePayload.sub);
+          console.log('Full Name: ' + responsePayload.name);
+          console.log('Given Name: ' + responsePayload.given_name);
+          console.log('Family Name: ' + responsePayload.family_name);
+          console.log("Image URL: " + responsePayload.picture);
+          console.log("Email: " + responsePayload.email);
+
+          // Update state with Google User info
+          state.user = {
+            email: responsePayload.email,
+            name: responsePayload.name,
+            avatar: responsePayload.picture
+          };
+
+          // Simulate login success
+          setLoggedIn(true);
+          
+          // Optional: Update UI to show user avatar instead of generic login
+          // (Requires adding an avatar element to the UI, omitted for MVP simplicity)
+
+        } catch (e) {
+          console.error('Error decoding Google token', e);
+        }
+      };
+
+      function decodeJwtResponse(token) {
+        var base64Url = token.split('.')[1];
+        var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        var jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload);
+      }
+
+      // --- Project Management ---
+      function renderProjects() {
+        projectListEl.innerHTML = '';
+        navRecentEl.innerHTML = '';
+
+        if (state.projects.length === 0) {
+          projectListEl.classList.add('hidden');
+          emptyStateEl.classList.remove('hidden');
+          return;
+        }
+
+        projectListEl.classList.remove('hidden');
+        emptyStateEl.classList.add('hidden');
+
+        // Sort by newest
+        const sorted = [...state.projects].sort((a, b) => b.id - a.id);
+
+        sorted.forEach(p => {
+          // Dashboard List Item
+          const item = document.createElement('div');
+          item.className = 'list-item';
+          item.innerHTML = `
+            <div>
+              <div style="font-weight:500">${p.title}</div>
+              <div class="muted">${p.date} · ${p.desc.substring(0, 20)}...</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+               ${p.status === 'processing' ? '<span class="tag processing">生成中</span>' : '<span class="tag success">已完成</span>'}
+               <button class="btn" onclick="openProject(${p.id})">查看</button>
+            </div>
+          `;
+          projectListEl.appendChild(item);
+
+          // Nav Item
+          const navItem = document.createElement('button');
+          navItem.className = 'nav-item';
+          navItem.style.fontSize = '13px';
+          navItem.textContent = p.title;
+          navItem.onclick = () => openProject(p.id);
+          navRecentEl.appendChild(navItem);
+        });
+      }
+
+      window.openProject = function(id) {
+        const project = state.projects.find(p => p.id === id);
+        if (!project) return;
+        
+        document.getElementById('result-project-title').textContent = project.title;
+        
+        // Reset View for Simulation
+        document.getElementById('generation-progress').classList.add('hidden');
+        document.getElementById('result-content').classList.remove('hidden');
+        document.getElementById('result-status-tag').textContent = project.status === 'processing' ? '生成中' : '已完成';
+        document.getElementById('result-status-tag').className = project.status === 'processing' ? 'tag processing' : 'tag success';
+
+        setActiveScreen('results');
+      };
+
+      // --- Generation Logic ---
+      document.getElementById('generate-btn').addEventListener('click', () => {
+        const idea = document.getElementById('idea-input').value;
+        if (!idea) return alert('请输入 Idea');
+
+        // Token Check
+        if (state.tokenBalance < 120) {
+          paywall.classList.add('active');
+          return;
+        }
+
+        // Deduct Token
+        state.tokenBalance -= 120;
+        updateTokenUI();
+
+        // Create Project
+        const newProject = {
+          id: Date.now(),
+          title: idea.substring(0, 10) + (idea.length > 10 ? '...' : ''),
+          desc: idea,
+          status: 'processing',
+          date: '刚刚'
+        };
+        state.projects.push(newProject);
+
+        // UI Transition
+        setActiveScreen('results');
+        document.getElementById('result-project-title').textContent = newProject.title;
+        document.getElementById('result-content').classList.add('hidden');
+        document.getElementById('generation-progress').classList.remove('hidden');
+        document.getElementById('result-status-tag').textContent = '生成中...';
+
+        // Simulate Streaming
+        const bar = document.getElementById('progress-bar');
+        const text = document.getElementById('progress-text');
+        
+        setTimeout(() => { bar.style.width = '30%'; text.textContent = '正在完善产品构想...'; }, 500);
+        setTimeout(() => { bar.style.width = '60%'; text.textContent = '正在撰写 PRD (MVP Scope)...'; }, 1500);
+        setTimeout(() => { bar.style.width = '90%'; text.textContent = '正在编写本地 HTML 原型代码...'; }, 2500);
+        setTimeout(() => { 
+          bar.style.width = '100%'; 
+          newProject.status = 'completed';
+          document.getElementById('generation-progress').classList.add('hidden');
+          document.getElementById('result-content').classList.remove('hidden');
+          document.getElementById('result-status-tag').textContent = '已完成';
+          document.getElementById('result-status-tag').className = 'tag success';
+          renderProjects(); // Update sidebar
+        }, 3500);
+      });
+
+      function updateTokenUI() {
+        tokenDisplay.textContent = state.tokenBalance;
+        tokenDisplayMini.textContent = state.tokenBalance;
+      }
+
+      // --- Tabs ---
+      document.querySelectorAll('[data-tab]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const tab = btn.dataset.tab;
+          const group = btn.dataset.tabGroup;
+          document.querySelectorAll(`[data-tab-group="${group}"]`).forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          document.querySelectorAll(`[data-tab-panel-group="${group}"]`).forEach((panel) => {
+            panel.classList.toggle('hidden', panel.dataset.tabPanel !== tab);
+          });
+        });
+      });
+
+      // --- Paywall ---
+      document.querySelectorAll('[data-close]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          document.getElementById(btn.dataset.close).classList.remove('active');
+        });
+      });
+
+      // --- Theme Toggle ---
+      const themeToggleBtn = document.getElementById('theme-toggle');
+      const htmlEl = document.documentElement;
+      
+      // Load saved theme
+      const savedTheme = localStorage.getItem('theme') || 'light';
+      htmlEl.setAttribute('data-theme', savedTheme);
+
+      themeToggleBtn.addEventListener('click', () => {
+        const current = htmlEl.getAttribute('data-theme');
+        const next = current === 'light' ? 'dark' : 'light';
+        htmlEl.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+      });
+
+      // Init
+      setLoggedIn(false);
+      updateTokenUI();
+    </script>
+  </body>
+</html>
